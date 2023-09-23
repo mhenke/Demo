@@ -12,9 +12,7 @@ import {
     AttributeValue
 } from "@aws-sdk/client-dynamodb/dist-types/models";
 import {DeleteCommand, PutCommand} from "@aws-sdk/lib-dynamodb";
-import {wait} from "next/dist/build/output/log";
 import {DeleteCommandInput} from "@aws-sdk/lib-dynamodb/dist-types/commands";
-import {faker} from "@faker-js/faker";
 
 
 export type TableType = {
