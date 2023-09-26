@@ -32,7 +32,7 @@ const table = {
 const item = {
     TableName: 'Music',
     Item:
-        {Artist: "Jay", SongTitle: "Hei Ha", genre: "blue"}
+        {Artist: "Jay", SongTitle: "ABC", genre: "blue"}
 }
 
 const queryItem = {
