@@ -53,7 +53,7 @@ const main = async () => {
 
     // console.log("insert: ", await insert_to_table(item));
     // console.log('aaa', await scan_table(table.TableName))
-    console.log('query item', (await (query_table(queryItem))).Items);
+    //console.log('query item', (await (query_table(queryItem))).Items);
 
 }
 main();
