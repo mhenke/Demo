@@ -3,7 +3,7 @@ import {
     DynamoDBClient,
     CreateTableCommand,
     DescribeTableCommand,
-    ScanCommand
+    ScanCommand, QueryCommand
 } from "@aws-sdk/client-dynamodb";
 import {
     KeySchemaElement,
@@ -11,7 +11,7 @@ import {
     TableDescription,
     AttributeValue
 } from "@aws-sdk/client-dynamodb/dist-types/models";
-import {DeleteCommand, PutCommand} from "@aws-sdk/lib-dynamodb";
+import {DeleteCommand, PutCommand, QueryCommandInput} from "@aws-sdk/lib-dynamodb";
 import {DeleteCommandInput} from "@aws-sdk/lib-dynamodb/dist-types/commands";
 
 
@@ -38,8 +38,6 @@ export const list_tables = async () => {
         if (res.Table) tables.push(res.Table);
     }
     return tables;
-
-    // return Promise.all(tables);
 };
 
 export const create_table = async (table: TableType) => {
@@ -47,9 +45,15 @@ export const create_table = async (table: TableType) => {
     return client.send(command).then(res => res).catch(e => e);
 };
 
+export const query_table = async (item: QueryCommandInput) => {
+    const command = new QueryCommand(item);
+    return client.send(command).then(res => res).catch(e => e);
+}
+
+
 export const insert_to_table = async (tableItem: TableInsertType) => {
     const command = new PutCommand(tableItem);
-    return client.send(command).then(res => "Created").catch(e => `Failed to create\n${e}`);
+    return client.send(command).then(res => "Inserted").catch(e => `Failed to create\n${e}`);
 };
 
 export type ScanTableType = "" | {

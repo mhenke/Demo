@@ -1,4 +1,4 @@
-import {create_table, list_tables, scan_table} from "./index";
+import {create_table, insert_to_table, list_tables, query_table, scan_table} from "./index";
 
 const table = {
     "AttributeDefinitions": [
@@ -28,14 +28,32 @@ const table = {
     "TableName": "Music"
 };
 
-const main = async ()=>{
-    console.log("list: ", await list_tables());
-        // console.log("create: ", await create_table(table));
-        // console.log("list: ", await insert_tables());
-    // const item = {TableName: 'Music',Item:  {Artist: "Jay", SongTitle: "Hei Ha"}}
-    // console.log("insert: ", await write_to_table(item));
-    // console.log('aaa', await scan_table(table.TableName))
 
+const item = {
+    TableName: 'Music',
+    Item:
+        {Artist: "Jay", SongTitle: "Hei Ha", genre: "blue"}
+}
+
+const queryItem = {
+    TableName: "Music",
+        KeyConditionExpression:
+    "Artist = :name",
+        ExpressionAttributeValues: {
+            ":name":{S:"Jay"}
+        },
+    ConsistentRead: true,
+}
+
+
+const main = async () => {
+    // console.log("list: ", await list_tables());
+    // console.log("create: ", await create_table(table));
+    // console.log("list: ", await list_tables());
+
+    // console.log("insert: ", await insert_to_table(item));
+    // console.log('aaa', await scan_table(table.TableName))
+    console.log('query item', (await (query_table(queryItem))).Items);
 
 }
 main();
