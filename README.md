@@ -20,6 +20,18 @@ Please reference this [official tutorial page](https://docs.aws.amazon.com/amazo
     ```bash
     npx ts-node dynamodb/client.ts # on windows cmd you may use "\" in the path 
     ```
-### Interacting with dynamodb table
+### Interacting with dynamodb table 
 
 1. list tables
+2. create table
+3. insert item
+4. scan table
+5. query table
+6. delete item
+
+### (Optional if interested) Interaction from Front-end
+
+1. run nextjs dev
+```bash
+npm run dev
+```
