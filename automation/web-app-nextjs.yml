@@ -1,0 +1,119 @@
+Description: >
+  Hi, this is a demo template for creating a nodejs server on a ec2
+Resources:
+  # creating VPC
+  MyTestVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+        - Key: Name
+          Value: MyTestVpc
+
+  # creating internet gateway (IGW) for the VPC
+  MyTestIgw:
+    Type: "AWS::EC2::InternetGateway"
+    Properties:
+      Tags:
+        - Key: Name
+          Value: my-test-igw
+
+  # connects IGW with VPC
+  MyTestAttachIgw:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      VpcId: !Ref MyTestVpc
+      InternetGatewayId: !Ref MyTestIgw
+
+  # create a public subnet
+  MyTestVpcSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyTestVpc
+      CidrBlock: 10.0.0.0/24
+      Tags:
+        - Key: Name
+          Value: my-test-vpc-public-subnet
+
+
+  # create a route table
+  MyTestPublicRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref MyTestVpc
+      Tags:
+        - Key: Name
+          Value: my-test-public-route-table
+
+  # associate the route table to the public subnet
+  MyTestRouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref MyTestPublicRouteTable
+      SubnetId: !Ref MyTestVpcSubnet
+
+  # add a route entry to IGW into route table
+  MyTestInternetRoute:
+    Type: "AWS::EC2::Route"
+    Properties:
+      RouteTableId: !Ref MyTestPublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref MyTestIgw
+
+  # create security group
+  MyTestVpcSg:
+    Type: AWS::EC2::SecurityGroup
+    DependsOn: MyTestVpc
+    Properties:
+      GroupDescription: SG to test ping
+      VpcId: !Ref MyTestVpc
+      SecurityGroupIngress:
+        # 22 is for ssh
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        # icmp is for ping (a network testing program)
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+        # 3000 is for next-js webapp
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+  MyTestEc2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0f3769c8d8429942f
+      KeyName: aws-keypair-1
+      InstanceType: t3.small
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          GroupSet:
+            - Ref: MyTestVpcSg
+          SubnetId: !Ref MyTestVpcSubnet
+      UserData:
+        Fn::Base64:
+          |
+          #!/bin/bash 
+          set -e
+          sudo yum update && sudo yum install git nodejs -y
+          cd $HOME
+          git clone https://github.com/UNOCourseDemo/Demo.git
+          cd Demo
+          npm i
+          npx prisma migrate reset --force && npx prisma migrate dev --name init
+          sudo npm run build && sudo npm run start
+          EOF
+
+Outputs:
+  MyTestVpc:
+    Description: MyTestVpc
+    Value: !Ref MyTestVpc
+    Export:
+      Name: MyTestVpc-ID
