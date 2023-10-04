@@ -101,14 +101,15 @@ Resources:
         Fn::Base64:
           |
           #!/bin/bash 
-          set -e
-          sudo yum update && sudo yum install git nodejs -y
-          cd $HOME
+          set -ex
+          yum update -y && yum install git nodejs -y
           git clone https://github.com/UNOCourseDemo/Demo.git
           cd Demo
           npm i
+          npm i pm2 -g
           npx prisma migrate reset --force && npx prisma migrate dev --name init
-          sudo npm run build && sudo npm run start
+          npm run build 
+          pm2 start npm -- start
           EOF
 
 Outputs:
@@ -117,3 +118,13 @@ Outputs:
     Value: !Ref MyTestVpc
     Export:
       Name: MyTestVpc-ID
+  WebsiteURL:
+    Description: URL for newly created nextjs app
+    Value: !Join
+      - ''
+      - - 'http://'
+        - !GetAtt
+          - MyTestEc2Instance
+          - PublicDnsName
+        - ':3000'
+
