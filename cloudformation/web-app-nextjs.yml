@@ -1,3 +1,23 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  InstanceType:
+    Description: The EC2 instance type
+    Type: String
+    Default: t3.micro
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+  KeyName:
+    Description: Name of an existing EC2 key pair to allow SSH access to the instances
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    Default: aws-keypair-1
+  LatestAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: 'arn:aws:ssm:us-east-2::parameter/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+
+
 Description: >
   Hi, this is a demo template for creating a nodejs server on a ec2
 Resources:
@@ -88,9 +108,9 @@ Resources:
   MyTestEc2Instance:
     Type: AWS::EC2::Instance
     Properties:
-      ImageId: ami-0f3769c8d8429942f
-      KeyName: aws-keypair-1
-      InstanceType: t3.small
+      ImageId: !Ref LatestAmiId
+      KeyName: !Ref KeyName
+      InstanceType: !Ref InstanceType
       NetworkInterfaces:
         - AssociatePublicIpAddress: true
           DeviceIndex: 0
