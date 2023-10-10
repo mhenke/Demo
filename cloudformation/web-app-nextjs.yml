@@ -12,11 +12,9 @@ Parameters:
   KeyName:
     Description: Name of an existing EC2 key pair to allow SSH access to the instances
     Type: 'AWS::EC2::KeyPair::KeyName'
-    Default: aws-keypair-1
-  LatestAmiId:
-    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-    Default: 'arn:aws:ssm:us-east-2::parameter/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
-
+  ImageId:
+    Type: 'AWS::EC2::Image::Id'
+    Default: ami-036f5574583e16426
 
 Description: >
   Hi, this is a demo template for creating a nodejs server on a ec2
@@ -108,7 +106,7 @@ Resources:
   MyTestEc2Instance:
     Type: AWS::EC2::Instance
     Properties:
-      ImageId: !Ref LatestAmiId
+      ImageId: !Ref ImageId
       KeyName: !Ref KeyName
       InstanceType: !Ref InstanceType
       NetworkInterfaces:
