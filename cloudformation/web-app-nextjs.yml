@@ -4,17 +4,17 @@ Parameters:
   InstanceType:
     Description: The EC2 instance type
     Type: String
-    Default: t3.micro
+    Default: t2.micro
     AllowedValues:
-      - t3.micro
-      - t3.small
-      - t3.medium
+      - t2.micro
+      - t2.small
+      - t2.medium
   KeyName:
     Description: Name of an existing EC2 key pair to allow SSH access to the instances
     Type: 'AWS::EC2::KeyPair::KeyName'
   ImageId:
     Type: 'AWS::EC2::Image::Id'
-    Default: ami-036f5574583e16426
+    Default: ami-067d1e60475437da2
 
 Description: >
   Hi, this is a demo template for creating a nodejs server on a ec2
