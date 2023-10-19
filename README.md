@@ -1,59 +1,52 @@
-This is a demo project written in NextJS. It uses prisma for ORM (which means connects to database)
+This is a demo project for containerize a NextJS web-app.
 
-# Run on your local machine
+# Test run docker build on your local machine
 
-- Step 1, clone this project to your local machine and within the project root folder 
-  install dependencies
-```bash
-npm i
-```
-- Step 2, setup database of sqlite (which is just an in 
-memory database only for the ease of testing)
-    - make sure the prisma/schema.prisma file has this
-  ```c
-    datasource db {
-      provider = "sqlite" 
-      url      = env("DATABASE_URL")     
-    }
+- Step 1, install docker on your local machine.
+- Step 2, 
+  - Option 1: Run the application
+    Inside the project root directory, run the following command in a terminal.
+    ```bash
+    docker compose up --build
+    ```
+    Open a browser and view the application at http://localhost:3000. 
+    You should see our web application.
+
+    In the terminal, press ctrl+c to stop the application.
+  - Option 2: Run the application in the background
+    You can run the application detached from the terminal by adding the -d option. 
+    Inside the project root directory, run the following command in a terminal.
+  
+    ```bash
+    docker compose up --build -d
+    ```
+    Open a browser and view the application at http://localhost:3000.
+    You should see our web application.
+    In the terminal, run the following command to stop the application.
+  
+    ```bash
+     docker compose down
+    ```
+  - For more information about Compose commands, see the [Compose CLI reference](https://docs.docker.com/compose/reference/).
+
+
+# Build an Image and push to the Docker Hub
+
+- Step 1, create a docker hub account (in my case: "xiaoqianuno"") and a repository (in my case, "cloud-computing-demo") for it. 
+- Step 2, build an image with a name and a tag (<name:tag>) using docker file within current folder "."
+  ```bash
+  docker build -t webapp:latest .
   ```
-    - Then Run a migration to create your database tables with Prisma Migrate
-    ```bash
-    npx prisma migrate dev --name init
-    ```
-- Step 3, run dev server to serve the NextJS web app
-    ```bash
-    npm run dev
-    ```
-
-# Run on aws ec2 with a mysql RDS
-
-- Step 0, fire up ec2 and mysql rds, set up correctly with their security rules
-    > By default, nextjs dev server run on port 3000 of http, so allow it's request
-- Step 1, clone this project to the ec2 and within the project root folder
-  install dependencies
-```bash
-npm i
-```
-- Step 2, setup database of mysql rds 
-    - ***make sure the prisma/schema.prisma file has this***
-  ```c
-    datasource db {
-      provider = "mysql" 
-      url      = "mysql://USER:PASSWORD@HOST:PORT/DATABASE"  
-    }
+- Step 3, tag local image with online repo by docker tag command
+  ```bash
+  # syntax: docker tag <local-image-name:tag> <dockerhub-username/repo:tag>
+  docker tag webapp:latest xiaoqianuno/cloud-computing-demo:latest
   ```
-  > Change the USER, PASSWORD, PORT and DATABASE of your mysql rds, specifically
-  > you have to have an existing DATABSE within mysql. 
-  > Tables can be created by prisma
-
-    - Then Run a migration to create your database tables with Prisma Migrate
-    ```bash
-    npx prisma migrate dev --name init
-    ```
-- Step 3, run dev server to serve the NextJS web app
-    ```bash
-    npm run dev
-    ```
-
-
-##
+- Step 4, push to docker hub
+  ```bash
+  docker push xiaoqianuno/cloud-computing-demo:latest
+  ```
+  
+Now this image can be shared via the internet [xiaoqianuno
+/
+cloud-computing-demo](https://hub.docker.com/repository/docker/xiaoqianuno/cloud-computing-demo/general)
