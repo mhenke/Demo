@@ -106,7 +106,7 @@ Register the task definition:
 aws ecs register-task-definition --cli-input-json file://task-definition.json
 ```
 
-### 4. Deploy Service
+### 4. Create Security group and all inbound traffic
 ```bash
 # Create security group
 aws ec2 create-security-group \
@@ -119,7 +119,9 @@ aws ec2 authorize-security-group-ingress \
     --protocol tcp \
     --port 3000 \
     --cidr 0.0.0.0/0
+```
 
+### 4. Deploy Service
 ```bash
 # Get default VPC subnets
 export SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=default-for-az,Values=true" --query "Subnets[0].SubnetId" --output text)
