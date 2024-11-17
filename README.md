@@ -65,7 +65,7 @@ cloud-computing-demo](https://hub.docker.com/repository/docker/xiaoqianuno/cloud
   ```bash
      aws ecs create-cluster --cluster-name my-cluster
   ```     
-   - Define a task definition for your Docker image in Amazon ECS.
+   - Define a task definition for your Docker image in Amazon ECS by updating the [/task-definition.json] with your docker repository from "step 4, push to docker hub".
    - Create or use an existing service in Amazon ECS to run the task definition.
 
 3. **Deploy and Verify**:
