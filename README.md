@@ -122,6 +122,14 @@ aws ecs describe-services \
     --services my-service
 ```
 
+Obtain the ip address and put in url to access with :3000
+```bash
+aws ec2 describe-network-interfaces \
+    --network-interface-ids eni-0be3543d96c777c58 \
+    --query 'NetworkInterfaces[0].Association.PublicIp' \
+    --output text
+```
+
 ### 6. Cleanup
 When you're done with the deployment, clean up your resources:
 ```bash
