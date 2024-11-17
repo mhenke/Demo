@@ -32,19 +32,12 @@ Resources:
           ToPort: 3000
           CidrIp: 0.0.0.0/0
 
-  ECSSubnet1:
+  ECSSubnet:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref DefaultVpc
       CidrBlock: 10.0.1.0/24
       AvailabilityZone: !Select [0, !GetAZs '']
-
-  ECSSubnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref DefaultVpc
-      CidrBlock: 10.0.2.0/24
-      AvailabilityZone: !Select [1, !GetAZs '']
 
   ECSService:
     Type: AWS::ECS::Service
@@ -57,8 +50,7 @@ Resources:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
           Subnets:
-            - !Ref ECSSubnet1
-            - !Ref ECSSubnet2
+            - !Ref ECSSubnet
           SecurityGroups:
             - !Ref ECSSecurityGroup
 
