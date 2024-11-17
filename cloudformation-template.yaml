@@ -1,9 +1,8 @@
 AWSTemplateFormatVersion: '2010-09-09'
+
 Resources:
   ECSCluster:
     Type: AWS::ECS::Cluster
-    Properties:
-      ClusterName: my-cluster2
 
   ECSTaskDefinition:
     Type: AWS::ECS::TaskDefinition
@@ -12,14 +11,40 @@ Resources:
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
-      Cpu: '256'
-      Memory: '512'
+      Cpu: '4096' # Increased CPU
+      Memory: '8192' # Increased Memory
       ContainerDefinitions:
-        - Name: webapp
+        - Name: cloud-computing-demo
           Image: henkemike/cloud-computing-demo:latest
           Essential: true
           PortMappings:
             - ContainerPort: 3000
+              Protocol: tcp
+
+  ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow traffic on port 3000
+      VpcId: !Ref DefaultVpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+
+  ECSSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref DefaultVpc
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+
+  ECSSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref DefaultVpc
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
 
   ECSService:
     Type: AWS::ECS::Service
@@ -30,23 +55,21 @@ Resources:
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
           Subnets:
-            - subnet-12345678
+            - !Ref ECSSubnet1
+            - !Ref ECSSubnet2
           SecurityGroups:
             - !Ref ECSSecurityGroup
 
-  ECSSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
+  DefaultVpc:
+    Type: AWS::EC2::VPC
     Properties:
-      GroupDescription: Allow inbound traffic on port 3000
-      VpcId: VALID_VPC_ID
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 3000
-          ToPort: 3000
-          CidrIp: 0.0.0.0/0
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
 
 Outputs:
-  ServiceURL:
-    Description: 'URL of the web application'
-    Value: !Sub 'http://${AWS::StackName}.elb.amazonaws.com:3000'
+  ServiceEndpoint:
+    Description: Public endpoint of the service
+    Value: !Sub 'http://${AWS::Region}.amazonaws.com'
