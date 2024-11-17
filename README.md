@@ -50,3 +50,18 @@ This is a demo project for containerize a NextJS web-app.
 Now this image can be shared via the internet [xiaoqianuno
 /
 cloud-computing-demo](https://hub.docker.com/repository/docker/xiaoqianuno/cloud-computing-demo/general)
+
+# Deploy Docker container to AWS
+
+1. **Verify AWS Credentials and Setup**:
+   - Ensure you have an AWS account with the necessary permissions to deploy Docker containers.
+   - Set up the AWS CLI with your credentials on your local machine.
+
+2. **Set Up AWS Environment**:
+   - Create an Amazon ECS Cluster or use an existing one.
+   - Define a task definition for your Docker image in Amazon ECS.
+   - Create or use an existing service in Amazon ECS to run the task definition.
+
+3. **Deploy and Verify**:
+   - Ensure the Docker image is correctly pushed to Docker Hub and accessible.
+   - Deploy the service and verify the deployment to ensure the Docker container is running properly in AWS.
