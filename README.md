@@ -71,5 +71,8 @@ cloud-computing-demo](https://hub.docker.com/repository/docker/xiaoqianuno/cloud
     aws ecs register-task-definition --cli-input-json file://task-definition.json
    ```   
 3. **Deploy and Verify**:
-   - Ensure the Docker image is correctly pushed to Docker Hub and accessible.
+   - Ensure the Docker image is correctly pushed to Docker Hub and accessible by visiting Docker Hub and navigate to your repository user-name/cloud-computing-demo to ensure the image is listed and available.
    - Deploy the service and verify the deployment to ensure the Docker container is running properly in AWS.
+  ```bash
+  aws ecs create-service --cluster my-cluster --service-name my-service --task-definition cloud-computing-demo --desired-count 1 --launch-type EC2
+  ```   
