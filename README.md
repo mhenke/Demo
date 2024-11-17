@@ -150,6 +150,65 @@ If deployment fails, check:
 5. Task definition is correctly configured
 6. VPC and subnet configurations are correct
 
+### 5. Cleaning Up Resources
+
+If you need to remove the deployment and try again, follow these steps in order:
+
+1. Delete the ECS service:
+```bash
+# Delete the service (force flag removes service even with running tasks)
+aws ecs delete-service \
+    --cluster my-cluster \
+    --service my-service \
+    --force
+
+# Verify service deletion
+aws ecs describe-services \
+    --cluster my-cluster \
+    --services my-service
+```
+
+2. Deregister the task definition:
+```bash
+# Get task definition ARN
+aws ecs list-task-definitions
+
+# Deregister the task definition
+aws ecs deregister-task-definition \
+    --task-definition cloud-computing-demo:1
+```
+
+3. Delete the cluster (and associated resources):
+
+If using Console method:
+- Go to AWS Console → ECS
+- Select your cluster
+- Click "Delete Cluster"
+
+If using CLI method:
+```bash
+# Delete CloudFormation stack if used
+aws cloudformation delete-stack --stack-name ecs-ec2-instances
+
+# Delete the cluster
+aws ecs delete-cluster --cluster my-cluster
+
+# Verify cluster deletion
+aws ecs describe-clusters --clusters my-cluster
+```
+
+4. Additional cleanup (if needed):
+```bash
+# List any remaining EC2 instances
+aws ec2 describe-instances \
+    --filters "Name=tag:aws:ecs:cluster-name,Values=my-cluster"
+
+# Terminate specific instances if any remain
+aws ec2 terminate-instances --instance-ids <instance-id>
+```
+
+Wait a few minutes after cleanup before attempting to redeploy.
+
 ## Additional Resources
 - [Docker Documentation](https://docs.docker.com/)
 - [AWS ECS Documentation](https://docs.aws.amazon.com/ecs/)
