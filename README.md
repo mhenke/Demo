@@ -67,59 +67,25 @@ aws ecs create-cluster --cluster-name my-cluster
 
 ### 2. Set Up ECS Infrastructure
 
-#### Option 1: Using AWS Console (Easiest Method)
+#### Using AWS Console (Single Method)
 1. Open the Amazon ECS console at https://console.aws.amazon.com/ecs/
 2. Click "Create Cluster"
-3. Select "EC2 Linux + Networking"
-4. Configure basic cluster settings:
+3. Choose "AWS EC2 instances" from the options
+4. Fill in basic details:
    - Cluster name: `my-cluster`
-   - EC2 instance type: `t2.micro` (for testing)
+   - Infrastructure: "AWS EC2 instances"
+   - Instance type: `t2.micro` (for testing)
    - Number of instances: 1
-   - VPC: Create new VPC (or select existing)
+   - Leave other settings as default
 5. Click "Create"
+6. Wait for cluster creation to complete (about 5 minutes)
 
-This will automatically:
-- Create the ECS cluster
-- Launch EC2 instances
-- Configure IAM roles
-- Set up networking
-- Configure security groups
+Verify setup:
+- In the ECS Console, select your cluster
+- Check "ECS Instances" tab - you should see 1 container instance
+- Status should show as "ACTIVE"
 
-#### Option 2: Using AWS CLI (Advanced Method)
-If you prefer using the CLI, use this simplified command:
-```bash
-# 1. Create the cluster (without capacity providers initially)
-aws ecs create-cluster --cluster-name my-cluster
-
-# 2. Create an Auto Scaling Group capacity provider
-aws ecs create-capacity-provider \
-    --name "my-cluster-cp" \
-    --auto-scaling-group-provider "autoScalingGroupArn=YOUR_ASG_ARN,managedScaling={status=ENABLED,targetCapacity=100},managedTerminationProtection=ENABLED"
-
-# 3. Associate the capacity provider with the cluster
-aws ecs put-cluster-capacity-providers \
-    --cluster my-cluster \
-    --capacity-providers my-cluster-cp \
-    --default-capacity-provider-strategy capacityProvider=my-cluster-cp,weight=1
-
-# 4. Create EC2 instances using CloudFormation
-aws cloudformation deploy \
-    --stack-name ecs-ec2-instances \
-    --template-file ecs-ec2-instance.yml \
-    --parameters \
-        "ClusterName=my-cluster" \
-        "InstanceType=t2.micro" \
-        "MinSize=1" \
-        "MaxSize=1"
-```
-
-Verify setup completion:
-```bash
-# Check if instances are registered
-aws ecs list-container-instances --cluster my-cluster
-```
-
-Note: For the CLI method, you'll need the CloudFormation template (`ecs-ec2-instance.yml`). Contact your DevOps team for this template or use the console method.
+Note: If creation fails, simply delete the cluster using the "Delete Cluster" button and try again.
 
 ### 3. Deploy the Application
 
