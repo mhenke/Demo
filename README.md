@@ -1,78 +1,162 @@
-This is a demo project for containerize a NextJS web-app.
+# NextJS Web App Containerization and AWS Deployment Guide
 
-# Test run docker build on your local machine
+This guide demonstrates how to containerize a NextJS web application and deploy it to AWS ECS.
 
-- Step 1, install docker on your local machine.
-- Step 2, 
-  - Option 1: Run the application
-    Inside the project root directory, run the following command in a terminal.
-    ```bash
-    docker compose up --build
-    ```
-    Open a browser and view the application at http://localhost:3000. 
-    You should see our web application.
+## Local Development
 
-    In the terminal, press ctrl+c to stop the application.
-  - Option 2: Run the application in the background
-    You can run the application detached from the terminal by adding the -d option. 
-    Inside the project root directory, run the following command in a terminal.
-  
-    ```bash
-    docker compose up --build -d
-    ```
-    Open a browser and view the application at http://localhost:3000.
-    You should see our web application.
-    In the terminal, run the following command to stop the application.
-  
-    ```bash
-     docker compose down
-    ```
-  - For more information about Compose commands, see the [Compose CLI reference](https://docs.docker.com/compose/reference/).
+### Prerequisites
+- Docker installed on your local machine
+- Node.js and npm (for local development)
+- AWS CLI configured with appropriate credentials
+- Docker Hub account
 
+### Running the Application Locally
 
-# Build an Image and push to the Docker Hub
+#### Option 1: Interactive Mode
+1. Navigate to the project root directory
+2. Run the following command:
+```bash
+docker compose up --build
+```
+3. Open your browser and visit http://localhost:3000
+4. Press `Ctrl+C` in the terminal to stop the application
 
-- Step 1, create a docker hub account (in my case: "xiaoqianuno"") and a repository (in my case, "cloud-computing-demo") for it. 
-- Step 2, build an image with a name and a tag (<name:tag>) using docker file within current folder "."
-  ```bash
-  docker build -t webapp:latest .
-  ```
-- Step 3, tag local image with online repo by docker tag command
-  ```bash
-  # syntax: docker tag <local-image-name:tag> <dockerhub-username/repo:tag>
-  docker tag webapp:latest xiaoqianuno/cloud-computing-demo:latest
-  ```
-- Step 4, push to docker hub
-  ```bash
-  docker push xiaoqianuno/cloud-computing-demo:latest
-  ```
-  
-Now this image can be shared via the internet [xiaoqianuno
-/
-cloud-computing-demo](https://hub.docker.com/repository/docker/xiaoqianuno/cloud-computing-demo/general)
+#### Option 2: Detached Mode
+1. Start the application in the background:
+```bash
+docker compose up --build -d
+```
+2. Open your browser and visit http://localhost:3000
+3. Stop the application when finished:
+```bash
+docker compose down
+```
 
-# Deploy Docker container to AWS
+For more information about Docker Compose commands, see the [Compose CLI reference](https://docs.docker.com/compose/reference/).
 
-1. **Verify AWS Credentials and Setup**:
-   - Ensure you have an AWS account with the necessary permissions to deploy Docker containers.
-   ```bash
-   aws iam list-attached-user-policies --user-name YOUR_USER_NAME
-   ```
-   - Set up the AWS CLI with your credentials on your local machine.
+## Docker Image Creation and Publishing
 
-2. **Set Up AWS Environment**:
-   - Create an Amazon ECS Cluster or use an existing one.
-  ```bash
-     aws ecs create-cluster --cluster-name my-cluster
-  ```     
-   - Define a task definition for your Docker image in Amazon ECS by updating the [/task-definition.json] with your docker repository from "step 4, push to docker hub".
-   - Create or use an existing service in Amazon ECS to run the task definition.
-   ```bash
-    aws ecs register-task-definition --cli-input-json file://task-definition.json
-   ```   
-3. **Deploy and Verify**:
-   - Ensure the Docker image is correctly pushed to Docker Hub and accessible by visiting Docker Hub and navigate to your repository user-name/cloud-computing-demo to ensure the image is listed and available.
-   - Deploy the service and verify the deployment to ensure the Docker container is running properly in AWS.
-  ```bash
-  aws ecs create-service --cluster my-cluster --service-name my-service --task-definition cloud-computing-demo --desired-count 1 --launch-type EC2
-  ```   
+### Building and Pushing to Docker Hub
+1. Create a Docker Hub account and repository
+2. Build the Docker image:
+```bash
+docker build -t webapp:latest .
+```
+3. Tag the image for Docker Hub:
+```bash
+# Syntax: docker tag <local-image-name:tag> <dockerhub-username/repo:tag>
+docker tag webapp:latest your-username/your-repo:latest
+```
+4. Push to Docker Hub:
+```bash
+docker push your-username/your-repo:latest
+```
+
+## AWS Deployment
+
+### 1. Configure AWS Environment
+1. Verify AWS credentials and permissions:
+```bash
+aws iam list-attached-user-policies --user-name YOUR_USER_NAME
+```
+
+2. Create an ECS cluster:
+```bash
+aws ecs create-cluster --cluster-name my-cluster
+```
+
+### 2. Set Up ECS Infrastructure
+
+#### Option 1: Using AWS Console (Easiest Method)
+1. Open the Amazon ECS console at https://console.aws.amazon.com/ecs/
+2. Click "Create Cluster"
+3. Select "EC2 Linux + Networking"
+4. Configure basic cluster settings:
+   - Cluster name: `my-cluster`
+   - EC2 instance type: `t2.micro` (for testing)
+   - Number of instances: 1
+   - VPC: Create new VPC (or select existing)
+5. Click "Create"
+
+This will automatically:
+- Create the ECS cluster
+- Launch EC2 instances
+- Configure IAM roles
+- Set up networking
+- Configure security groups
+
+#### Option 2: Using AWS CLI (Advanced Method)
+If you prefer using the CLI, use this simplified command:
+```bash
+# Create cluster with EC2 capacity provider
+aws ecs create-cluster \
+    --cluster-name my-cluster \
+    --capacity-providers FARGATE EC2 \
+    --default-capacity-provider-strategy capacityProvider=EC2,weight=1 \
+    --configuration executeCommandConfiguration={logging=DEFAULT}
+
+# Create an EC2 instance for the cluster
+aws cloudformation deploy \
+    --stack-name ecs-ec2-instances \
+    --template-file ecs-ec2-instance.yml \
+    --parameters \
+        "ClusterName=my-cluster" \
+        "InstanceType=t2.micro" \
+        "MinSize=1" \
+        "MaxSize=1"
+```
+
+Verify setup completion:
+```bash
+# Check if instances are registered
+aws ecs list-container-instances --cluster my-cluster
+```
+
+Note: For the CLI method, you'll need the CloudFormation template (`ecs-ec2-instance.yml`). Contact your DevOps team for this template or use the console method.
+
+### 3. Deploy the Application
+
+1. Register the task definition:
+```bash
+aws ecs register-task-definition \
+    --cli-input-json file://task-definition.json
+```
+
+2. Create the ECS service:
+```bash
+aws ecs create-service \
+    --cluster my-cluster \
+    --service-name my-service \
+    --task-definition cloud-computing-demo \
+    --desired-count 1 \
+    --launch-type EC2
+```
+
+3. Verify deployment:
+```bash
+# Check service status
+aws ecs describe-services \
+    --cluster my-cluster \
+    --services my-service
+```
+
+### 4. Troubleshooting
+
+If deployment fails, check:
+1. EC2 instances are running and registered with the cluster
+2. IAM roles and policies are correctly configured
+3. Security groups allow necessary traffic
+4. Docker image is accessible from ECR/Docker Hub
+5. Task definition is correctly configured
+6. VPC and subnet configurations are correct
+
+## Additional Resources
+- [Docker Documentation](https://docs.docker.com/)
+- [AWS ECS Documentation](https://docs.aws.amazon.com/ecs/)
+- [NextJS Documentation](https://nextjs.org/docs)
+
+## Contributing
+Please submit issues and pull requests for any improvements to this guide.
+
+## License
+[Include your license information here]
