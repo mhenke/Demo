@@ -55,10 +55,16 @@ cloud-computing-demo](https://hub.docker.com/repository/docker/xiaoqianuno/cloud
 
 1. **Verify AWS Credentials and Setup**:
    - Ensure you have an AWS account with the necessary permissions to deploy Docker containers.
+   ```bash
+   aws iam list-attached-user-policies --user-name YOUR_USER_NAME
+   ```
    - Set up the AWS CLI with your credentials on your local machine.
 
 2. **Set Up AWS Environment**:
    - Create an Amazon ECS Cluster or use an existing one.
+  ```bash
+     aws ecs create-cluster --cluster-name my-cluster
+  ```     
    - Define a task definition for your Docker image in Amazon ECS.
    - Create or use an existing service in Amazon ECS to run the task definition.
 
