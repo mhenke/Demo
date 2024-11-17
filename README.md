@@ -77,30 +77,8 @@ aws ecs describe-clusters --clusters my-cluster
 ```
 
 ### 3. Create Task Definition
-Create `task-definition.json`:
-```json
-{
-  "family": "cloud-computing-demo",
-  "networkMode": "awsvpc",
-  "requiresCompatibilities": ["FARGATE"],
-  "cpu": "256",
-  "memory": "512",
-  "containerDefinitions": [
-    {
-      "name": "web-app",
-      "image": "your-username/your-repo:latest",
-      "portMappings": [
-        {
-          "containerPort": 3000,
-          "protocol": "tcp"
-        }
-      ],
-      "essential": true
-    }
-  ]
-}
+Update the `task-definition.json` to your published Docker image.
 ```
-
 Register the task definition:
 ```bash
 aws ecs register-task-definition --cli-input-json file://task-definition.json
