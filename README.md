@@ -52,60 +52,121 @@ docker tag webapp:latest your-username/your-repo:latest
 docker push your-username/your-repo:latest
 ```
 
-## AWS Deployment
+# NextJS Web App Containerization and AWS ECS Fargate Deployment Guide
 
-### 1. Configure AWS Environment
-1. Verify AWS credentials and permissions:
+This guide demonstrates how to containerize a NextJS web application and deploy it to AWS ECS using Fargate.
+
+## Prerequisites
+- Docker installed on your local machine
+- AWS CLI configured with appropriate credentials
+- Docker Hub account
+- Default VPC exists in your AWS account (most accounts have this)
+
+## Local Development
+
+### Running the Application Locally
+
+#### Option 1: Interactive Mode
+1. Navigate to the project root directory
+2. Run the following command:
 ```bash
-aws iam list-attached-user-policies --user-name YOUR_USER_NAME
+docker compose up --build
+```
+3. Open your browser and visit http://localhost:3000
+4. Press `Ctrl+C` in the terminal to stop the application
+
+#### Option 2: Detached Mode
+1. Start the application in the background:
+```bash
+docker compose up --build -d
+```
+2. Open your browser and visit http://localhost:3000
+3. Stop the application when finished:
+```bash
+docker compose down
 ```
 
-2. Create an ECS cluster:
+## AWS Deployment Steps
+
+### 1. Build and Push Docker Image
 ```bash
-aws ecs create-cluster --cluster-name my-cluster
+# Build image
+docker build -t webapp:latest .
+
+# Tag image
+docker tag webapp:latest your-username/your-repo:latest
+
+# Push to Docker Hub
+docker push your-username/your-repo:latest
 ```
 
 ### 2. Set Up ECS Infrastructure
-
-#### Using AWS Console (Single Method)
-1. Open the Amazon ECS console at https://console.aws.amazon.com/ecs/
-2. Click "Create Cluster"
-3. Choose "AWS EC2 instances" from the options
-4. Fill in basic details:
-   - Cluster name: `my-cluster`
-   - Infrastructure: "AWS EC2 instances"
-   - Instance type: `t2.micro` (for testing)
-   - Number of instances: 1
-   - Leave other settings as default
-5. Click "Create"
-6. Wait for cluster creation to complete (about 5 minutes)
-
-Verify setup:
-- In the ECS Console, select your cluster
-- Check "ECS Instances" tab - you should see 1 container instance
-- Status should show as "ACTIVE"
-
-Note: If creation fails, simply delete the cluster using the "Delete Cluster" button and try again.
-
-### 3. Deploy the Application
-
-1. Register the task definition:
 ```bash
-aws ecs register-task-definition \
-    --cli-input-json file://task-definition.json
+# Create cluster with Fargate
+aws ecs create-cluster --cluster-name my-cluster
+
+# Verify cluster creation
+aws ecs describe-clusters --clusters my-cluster
 ```
 
-2. Create the ECS service:
+### 3. Create Task Definition
+Create `task-definition.json`:
+```json
+{
+  "family": "cloud-computing-demo",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "containerDefinitions": [
+    {
+      "name": "web-app",
+      "image": "your-username/your-repo:latest",
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true
+    }
+  ]
+}
+```
+
+Register the task definition:
 ```bash
+aws ecs register-task-definition --cli-input-json file://task-definition.json
+```
+
+### 4. Deploy Service
+```bash
+# Get default VPC subnets
+export SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=default-for-az,Values=true" --query "Subnets[0].SubnetId" --output text)
+
+# Create security group
+aws ec2 create-security-group \
+    --group-name ecs-fargate-sg \
+    --description "ECS Fargate security group"
+
+# Allow inbound traffic on port 3000
+aws ec2 authorize-security-group-ingress \
+    --group-id $(aws ec2 describe-security-groups --group-names ecs-fargate-sg --query "SecurityGroups[0].GroupId" --output text) \
+    --protocol tcp \
+    --port 3000 \
+    --cidr 0.0.0.0/0
+
+# Create service
 aws ecs create-service \
     --cluster my-cluster \
     --service-name my-service \
     --task-definition cloud-computing-demo \
     --desired-count 1 \
-    --launch-type EC2
+    --launch-type FARGATE \
+    --network-configuration "awsvpcConfiguration={subnets=[${SUBNET_ID}],securityGroups=[$(aws ec2 describe-security-groups --group-names ecs-fargate-sg --query 'SecurityGroups[0].GroupId' --output text)],assignPublicIp=ENABLED}"
 ```
 
-3. Verify deployment:
+### 5. Verify Deployment
 ```bash
 # Check service status
 aws ecs describe-services \
@@ -113,74 +174,29 @@ aws ecs describe-services \
     --services my-service
 ```
 
-### 4. Troubleshooting
-
-If deployment fails, check:
-1. EC2 instances are running and registered with the cluster
-2. IAM roles and policies are correctly configured
-3. Security groups allow necessary traffic
-4. Docker image is accessible from ECR/Docker Hub
-5. Task definition is correctly configured
-6. VPC and subnet configurations are correct
-
-### 5. Cleaning Up Resources
-
-If you need to remove the deployment and try again, follow these steps in order:
-
-1. Delete the ECS service:
+### 6. Cleanup
+When you're done with the deployment, clean up your resources:
 ```bash
-# Delete the service (force flag removes service even with running tasks)
+# Delete service
 aws ecs delete-service \
     --cluster my-cluster \
     --service my-service \
     --force
 
-# Verify service deletion
-aws ecs describe-services \
-    --cluster my-cluster \
-    --services my-service
-```
-
-2. Deregister the task definition:
-```bash
-# Get task definition ARN
-aws ecs list-task-definitions
-
-# Deregister the task definition
-aws ecs deregister-task-definition \
-    --task-definition cloud-computing-demo:1
-```
-
-3. Delete the cluster (and associated resources):
-
-If using Console method:
-- Go to AWS Console → ECS
-- Select your cluster
-- Click "Delete Cluster"
-
-If using CLI method:
-```bash
-# Delete CloudFormation stack if used
-aws cloudformation delete-stack --stack-name ecs-ec2-instances
-
-# Delete the cluster
+# Delete cluster
 aws ecs delete-cluster --cluster my-cluster
 
-# Verify cluster deletion
-aws ecs describe-clusters --clusters my-cluster
+# Delete security group
+aws ec2 delete-security-group --group-name ecs-fargate-sg
 ```
 
-4. Additional cleanup (if needed):
-```bash
-# List any remaining EC2 instances
-aws ec2 describe-instances \
-    --filters "Name=tag:aws:ecs:cluster-name,Values=my-cluster"
-
-# Terminate specific instances if any remain
-aws ec2 terminate-instances --instance-ids <instance-id>
-```
-
-Wait a few minutes after cleanup before attempting to redeploy.
+## Troubleshooting
+If deployment fails, check:
+1. Docker image is accessible from Docker Hub
+2. Security group was created successfully
+3. Task definition is registered correctly
+4. Service has the correct network configuration
+5. AWS CLI has the necessary permissions
 
 ## Additional Resources
 - [Docker Documentation](https://docs.docker.com/)
