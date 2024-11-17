@@ -67,7 +67,9 @@ cloud-computing-demo](https://hub.docker.com/repository/docker/xiaoqianuno/cloud
   ```     
    - Define a task definition for your Docker image in Amazon ECS by updating the [/task-definition.json] with your docker repository from "step 4, push to docker hub".
    - Create or use an existing service in Amazon ECS to run the task definition.
-
+   ```bash
+    aws ecs register-task-definition --cli-input-json file://task-definition.json
+   ```   
 3. **Deploy and Verify**:
    - Ensure the Docker image is correctly pushed to Docker Hub and accessible.
    - Deploy the service and verify the deployment to ensure the Docker container is running properly in AWS.
