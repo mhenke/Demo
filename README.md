@@ -88,14 +88,21 @@ This will automatically:
 #### Option 2: Using AWS CLI (Advanced Method)
 If you prefer using the CLI, use this simplified command:
 ```bash
-# Create cluster with EC2 capacity provider
-aws ecs create-cluster \
-    --cluster-name my-cluster \
-    --capacity-providers FARGATE EC2 \
-    --default-capacity-provider-strategy capacityProvider=EC2,weight=1 \
-    --configuration executeCommandConfiguration={logging=DEFAULT}
+# 1. Create the cluster (without capacity providers initially)
+aws ecs create-cluster --cluster-name my-cluster
 
-# Create an EC2 instance for the cluster
+# 2. Create an Auto Scaling Group capacity provider
+aws ecs create-capacity-provider \
+    --name "my-cluster-cp" \
+    --auto-scaling-group-provider "autoScalingGroupArn=YOUR_ASG_ARN,managedScaling={status=ENABLED,targetCapacity=100},managedTerminationProtection=ENABLED"
+
+# 3. Associate the capacity provider with the cluster
+aws ecs put-cluster-capacity-providers \
+    --cluster my-cluster \
+    --capacity-providers my-cluster-cp \
+    --default-capacity-provider-strategy capacityProvider=my-cluster-cp,weight=1
+
+# 4. Create EC2 instances using CloudFormation
 aws cloudformation deploy \
     --stack-name ecs-ec2-instances \
     --template-file ecs-ec2-instance.yml \
