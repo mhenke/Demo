@@ -9,6 +9,7 @@ This guide demonstrates how to containerize a NextJS web application and deploy 
 - Node.js and npm (for local development)
 - AWS CLI configured with appropriate credentials
 - Docker Hub account
+- Default VPC exists in your AWS account (most accounts have this)
 
 ### Running the Application Locally
 
@@ -50,40 +51,6 @@ docker tag webapp:latest your-username/your-repo:latest
 4. Push to Docker Hub:
 ```bash
 docker push your-username/your-repo:latest
-```
-
-# NextJS Web App Containerization and AWS ECS Fargate Deployment Guide
-
-This guide demonstrates how to containerize a NextJS web application and deploy it to AWS ECS using Fargate.
-
-## Prerequisites
-- Docker installed on your local machine
-- AWS CLI configured with appropriate credentials
-- Docker Hub account
-- Default VPC exists in your AWS account (most accounts have this)
-
-## Local Development
-
-### Running the Application Locally
-
-#### Option 1: Interactive Mode
-1. Navigate to the project root directory
-2. Run the following command:
-```bash
-docker compose up --build
-```
-3. Open your browser and visit http://localhost:3000
-4. Press `Ctrl+C` in the terminal to stop the application
-
-#### Option 2: Detached Mode
-1. Start the application in the background:
-```bash
-docker compose up --build -d
-```
-2. Open your browser and visit http://localhost:3000
-3. Stop the application when finished:
-```bash
-docker compose down
 ```
 
 ## AWS Deployment Steps
