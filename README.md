@@ -78,7 +78,7 @@ aws ecs describe-clusters --clusters my-cluster
 
 ### 3. Create Task Definition
 Update the `task-definition.json` to your published Docker image.
-```
+
 Register the task definition:
 ```bash
 aws ecs register-task-definition --cli-input-json file://task-definition.json
