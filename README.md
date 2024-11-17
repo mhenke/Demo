@@ -156,6 +156,10 @@ aws ecs delete-service \
 # Delete cluster
 aws ecs delete-cluster --cluster my-cluster
 
+# Delete task
+aws ecs deregister-task-definition \                                         
+    --task-definition cloud-computing-demo:1                               
+
 # Delete security group
 aws ec2 delete-security-group --group-name ecs-fargate-sg
 ```
