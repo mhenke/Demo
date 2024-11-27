@@ -1,59 +1,85 @@
+# Demo Project Setup
+
+## Initial Setup
+
+```bash
+git clone https://github.com/UNOCourseDemo/Demo.git
+cd Demo
+npm install
+```
+
 # Demo Project for AWS CloudFormation and Node.js SDK
 
 This project demonstrates how to use AWS CloudFormation templates and the Node.js SDK for interacting with AWS services.
 
-Please reference the [official tutorial page](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/cloudformation/) for more features.
+## Prerequisites
 
-## Set up the Environment
+1. AWS CLI installed and configured
+2. AWS account with appropriate permissions
+3. EC2 key pair created in your AWS account
 
-1. Clone this project to your local machine and within the project root folder, install dependencies:
-    ```bash
-    npm install
-    ```
+# Export bucket name as environment variable
 
-2. Set up the command line credentials for accessing your AWS services.
+export BUCKET_NAME="YOUR-BUCKET-NAME"
+export KEY_PAIR_NAME="YOUR_KEY_PAIR_NAME"
 
 ## Deploy on AWS using CloudFormation
 
-1. Ensure you have the AWS CLI installed and configured on your local machine.
+1. Create an S3 bucket:
 
-2. Upload the `cloudformation.yml` template to an S3 bucket.
+```bash
+aws s3 mb s3://${BUCKET_NAME}
+```
 
-3. Create a CloudFormation stack using the AWS Management Console or AWS CLI:
-    ```bash
-    aws cloudformation create-stack --stack-name MyStack --template-url https://s3.amazonaws.com/YOUR_BUCKET_NAME/cloudformation.yml --capabilities CAPABILITY_NAMED_IAM
-    ```
-    Replace `YOUR_BUCKET_NAME` with your S3 bucket name.
+2. Upload the template:
 
-4. Once the stack creation is complete, note the outputs for the EC2 instance and RDS instance.
+```bash
+aws s3 cp cloudformation/web-app-nextjs.yml s3://${BUCKET_NAME}/
+```
 
-5. SSH into the EC2 instance:
-    ```bash
-    ssh -i your-key-pair.pem ec2-user@your-ec2-instance-public-dns
-    ```
+3. Create the stack:
 
-6. Clone this project to the EC2 instance and within the project root folder, install dependencies:
-    ```bash
-    npm install
-    ```
+```bash
+aws cloudformation create-stack \
+  --stack-name MyStack \
+  --template-url https://s3.amazonaws.com/$BUCKET_NAME/web-app-nextjs.yml \
+  --parameters \
+    ParameterKey=KeyName,ParameterValue=$KEY_PAIR_NAME \
+  --capabilities CAPABILITY_NAMED_IAM
+```
 
-7. Set up the database connection in `prisma/schema.prisma`:
-    ```c
-    datasource db {
-      provider = "mysql"
-      url      = "mysql://USER:PASSWORD@RDS_ENDPOINT:PORT/DATABASE"
-    }
-    ```
-    Replace `USER`, `PASSWORD`, `RDS_ENDPOINT`, `PORT`, and `DATABASE` with your MySQL RDS details.
+1. Watch stack creation status:
 
-8. Run a migration to create your database tables with Prisma Migrate:
-    ```bash
-    npx prisma migrate dev --name init
-    ```
+```bash
+watch -n 10 'aws cloudformation describe-stacks --stack-name MyStack --query "Stacks[0].StackStatus"'
+```
 
-9. Run the dev server to serve the Next.js web app:
-    ```bash
-    npm run dev
-    ```
+4. Get stack outputs:
 
-##
+```bash
+aws cloudformation describe-stacks --stack-name MyStack --query "Stacks[0].Outputs" > stack-outputs.json
+```
+
+5. Access your application:
+   - The application URL will be available in stack outputs as WebsiteURL
+   - Database endpoint will be available in stack outputs as DatabaseEndpoint
+
+## Architecture Components
+
+The CloudFormation template provisions:
+
+- VPC with public subnet
+- EC2 instance running Node.js application
+- PostgreSQL RDS instance
+- Security groups for EC2 and RDS
+- Necessary networking components (IGW, route tables)
+
+## Application Access
+
+The application is accessible on port 3000 of your EC2 instance's public DNS. The URL is provided in the stack outputs.
+
+## Monitoring
+
+- Application health is monitored via cron job
+- PM2 process manager handles application runtime
+- Application automatically restarts on system reboot

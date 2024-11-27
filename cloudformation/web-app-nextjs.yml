@@ -14,12 +14,11 @@ Parameters:
     Type: 'AWS::EC2::KeyPair::KeyName'
   ImageId:
     Type: 'AWS::EC2::Image::Id'
-    Default: ami-067d1e60475437da2
+    Default: ami-0c1d914711f05b265
 
 Description: >
   Hi, this is a demo template for creating a nodejs server on a ec2
 Resources:
-  # creating VPC
   MyTestVpc:
     Type: AWS::EC2::VPC
     Properties:
@@ -30,22 +29,19 @@ Resources:
         - Key: Name
           Value: MyTestVpc
 
-  # creating internet gateway (IGW) for the VPC
   MyTestIgw:
-    Type: "AWS::EC2::InternetGateway"
+    Type: 'AWS::EC2::InternetGateway'
     Properties:
       Tags:
         - Key: Name
           Value: my-test-igw
 
-  # connects IGW with VPC
   MyTestAttachIgw:
-    Type: "AWS::EC2::VPCGatewayAttachment"
+    Type: 'AWS::EC2::VPCGatewayAttachment'
     Properties:
       VpcId: !Ref MyTestVpc
       InternetGatewayId: !Ref MyTestIgw
 
-  # create a public subnet
   MyTestVpcSubnet:
     Type: AWS::EC2::Subnet
     Properties:
@@ -55,32 +51,27 @@ Resources:
         - Key: Name
           Value: my-test-vpc-public-subnet
 
-
-  # create a route table
   MyTestPublicRouteTable:
-    Type: "AWS::EC2::RouteTable"
+    Type: 'AWS::EC2::RouteTable'
     Properties:
       VpcId: !Ref MyTestVpc
       Tags:
         - Key: Name
           Value: my-test-public-route-table
 
-  # associate the route table to the public subnet
   MyTestRouteTableAssociation:
-    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       RouteTableId: !Ref MyTestPublicRouteTable
       SubnetId: !Ref MyTestVpcSubnet
 
-  # add a route entry to IGW into route table
   MyTestInternetRoute:
-    Type: "AWS::EC2::Route"
+    Type: 'AWS::EC2::Route'
     Properties:
       RouteTableId: !Ref MyTestPublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref MyTestIgw
 
-  # create security group
   MyTestVpcSg:
     Type: AWS::EC2::SecurityGroup
     DependsOn: MyTestVpc
@@ -88,21 +79,19 @@ Resources:
       GroupDescription: SG to test ping
       VpcId: !Ref MyTestVpc
       SecurityGroupIngress:
-        # 22 is for ssh
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
-        # icmp is for ping (a network testing program)
         - IpProtocol: icmp
           FromPort: -1
           ToPort: -1
           CidrIp: 0.0.0.0/0
-        # 3000 is for next-js webapp
         - IpProtocol: tcp
           FromPort: 3000
           ToPort: 3000
           CidrIp: 0.0.0.0/0
+
   MyTestEc2Instance:
     Type: AWS::EC2::Instance
     Properties:
@@ -113,11 +102,10 @@ Resources:
         - AssociatePublicIpAddress: true
           DeviceIndex: 0
           GroupSet:
-            - Ref: MyTestVpcSg
+            - !Ref MyTestVpcSg
           SubnetId: !Ref MyTestVpcSubnet
       UserData:
-        Fn::Base64:
-          |
+        Fn::Base64: |
           #!/bin/bash 
           set -ex
           yum update -y && yum install git nodejs -y
@@ -128,7 +116,49 @@ Resources:
           npx prisma migrate reset --force && npx prisma migrate dev --name init
           npm run build 
           pm2 start npm -- start
-          EOF
+
+  MyTestVpcSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyTestVpc
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: my-test-vpc-private-subnet
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for RDS
+      VpcId: !Ref MyTestVpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref MyTestVpcSg
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for RDS
+      SubnetIds:
+        - !Ref MyTestVpcSubnet
+        - !Ref MyTestVpcSubnet2
+
+  PostgresDB:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBName: myappdb
+      Engine: postgres
+      MasterUsername: postgres
+      MasterUserPassword: postgres123
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: '20'
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      PubliclyAccessible: false
 
 Outputs:
   MyTestVpc:
@@ -138,11 +168,7 @@ Outputs:
       Name: MyTestVpc-ID
   WebsiteURL:
     Description: URL for newly created nextjs app
-    Value: !Join
-      - ''
-      - - 'http://'
-        - !GetAtt
-          - MyTestEc2Instance
-          - PublicDnsName
-        - ':3000'
-
+    Value: !Sub http://${MyTestEc2Instance.PublicDnsName}:3000
+  DatabaseEndpoint:
+    Description: Database endpoint
+    Value: !Sub ${PostgresDB.Endpoint.Address}
