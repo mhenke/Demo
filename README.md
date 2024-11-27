@@ -3,8 +3,8 @@
 ## Prerequisites
 
 1. AWS CLI installed and configured
-2. AWS account with appropriate permissions
-3. EC2 key pair created in your AWS account
+1. AWS account with appropriate permissions
+1. EC2 key pair created in your AWS account
 
 ## Initial Setup
 
@@ -29,13 +29,13 @@ export KEY_PAIR_NAME="YOUR_KEY_PAIR_NAME"
 aws s3 mb s3://${BUCKET_NAME}
 ```
 
-1. Upload the template:
+2. Upload the template:
 
 ```bash
 aws s3 cp cloudformation/web-app-nextjs.yml s3://${BUCKET_NAME}/
 ```
 
-1. Create the stack:
+3. Create the stack:
 
 ```bash
 aws cloudformation create-stack \
@@ -46,21 +46,22 @@ aws cloudformation create-stack \
   --capabilities CAPABILITY_NAMED_IAM
 ```
 
-1. Watch stack creation status:
+4. Watch stack creation status:
 
 ```bash
 watch -n 10 'aws cloudformation describe-stacks --stack-name MyStack --query "Stacks[0].StackStatus"'
 ```
 
-1. Get stack outputs:
+5. Get stack outputs:
 
 ```bash
 aws cloudformation describe-stacks --stack-name MyStack --query "Stacks[0].Outputs" > stack-outputs.json
 ```
 
-1. Access your application:
-   - The application URL will be available in stack outputs as WebsiteURL
-   - Database endpoint will be available in stack outputs as DatabaseEndpoint
+6. Access your application:
+
+- The application URL will be available in stack outputs as WebsiteURL
+- Database endpoint will be available in stack outputs as DatabaseEndpoint
 
 ## Architecture Components
 
