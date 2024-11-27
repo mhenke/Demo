@@ -8,19 +8,22 @@
 
 ## Initial Setup
 
+````bash
 ```bash
-git clone https://github.com/mhenke/Demo.git
+git clone --branch cloudformation https://github.com/mhenke/Demo.git
 cd Demo
-git checkout cloudformation
+````
+
 npm install
-```
+
+````
 
 # Export bucket name as environment variable
 
 ```bash
 export BUCKET_NAME="YOUR-BUCKET-NAME"
 export KEY_PAIR_NAME="YOUR_KEY_PAIR_NAME"
-```
+````
 
 ## Deploy on AWS using CloudFormation
 
