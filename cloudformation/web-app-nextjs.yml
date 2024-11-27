@@ -16,6 +16,14 @@ Parameters:
     Type: String
     Description: PostgreSQL database name
     Default: myappdb
+  DBUsername:
+    Type: String
+    Description: Database username
+    Default: your_db_username
+  DBPassword:
+    Type: String
+    Description: Database password
+    NoEcho: true
 
 Resources:
   # VPC Resources
@@ -127,8 +135,8 @@ Resources:
     Properties:
       DBName: !Ref DBName
       Engine: postgres
-      MasterUsername: postgres
-      MasterUserPassword: postgres123
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
       DBInstanceClass: db.t3.micro
       AllocatedStorage: '20'
       VPCSecurityGroups:
@@ -169,7 +177,7 @@ Resources:
           rm -f .env
           cat << EOF > .env
           DATABASE="postgresql"
-          DATABASE_URL="postgresql://postgres:postgres123@${PostgresDB.Endpoint.Address}:5432/${DBName}?schema=public"
+          DATABASE_URL="postgresql://${DBUsername}:${DBPassword}@${PostgresDB.Endpoint.Address}:5432/${DBName}?schema=public"
           URL="http://$PUBLIC_IP:3000"
           EOF
 
