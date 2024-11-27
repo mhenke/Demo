@@ -107,26 +107,41 @@ Resources:
       UserData:
         Fn::Base64: |
           #!/bin/bash 
-          set -ex
+              set -ex
 
-          # Update and install required packages
-          apt-get update
-          apt-get install -y git npm nodejs
+              # Update and install required packages
+              apt-get update
+              apt-get install -y git nodejs npm
 
-          # Install PM2 globally
-          npm install -g pm2
+              # Install PM2 globally
+              npm install -g pm2
 
-          # Clone and setup application
-          git clone --bare https://github.com/mhenke/Demo.git
-          cd Demo
-          git fetch origin cloudformation:cloudformation
-          git checkout cloudformation
-          npm install
+              # Wait for the database to be available
+              until nc -z -v -w30 ${PostgresDB.Endpoint.Address} 5432
+              do
+            echo "Waiting for database connection..."
+            sleep 5
+              done
 
-          # Setup database and start application
-          npx prisma migrate reset --force && npx prisma migrate dev --name init
-          npm run build 
-          pm2 start npm -- start
+              # Clone and setup application
+              git clone -b cloudformation https://github.com/mhenke/Demo.git
+              cd Demo
+
+              # Remove existing .env file and create new one
+              rm -f .env
+              cat << EOF > .env
+              DATABASE="postgresql"
+              DATABASE_URL="postgresql://${DBUsername}:${DBPassword}@${PostgresDB.Endpoint.Address}:5432/${DBName}?schema=public"
+              URL="http://$PUBLIC_IP:3000"
+              EOF
+
+              # Install dependencies
+              npm install
+
+              # Setup database and start application
+              npx prisma migrate reset --force && npx prisma migrate dev --name init
+              npm run build 
+              pm2 start npm -- start
 
   MyTestVpcSubnet2:
     Type: AWS::EC2::Subnet
