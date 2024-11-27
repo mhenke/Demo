@@ -12,22 +12,13 @@ Parameters:
   KeyName:
     Description: Name of an existing EC2 key pair to allow SSH access to the instances
     Type: 'AWS::EC2::KeyPair::KeyName'
-  DBPassword:
-    Type: String
-    NoEcho: true
-    Description: PostgreSQL database password
-    MinLength: 8
-  DBUsername:
-    Type: String
-    Description: PostgreSQL database username
-    Default: postgres
   DBName:
     Type: String
     Description: PostgreSQL database name
     Default: myappdb
 
 Resources:
-  # VPC Resources - No changes needed in order
+  # VPC Resources
   MyTestVpc:
     Type: AWS::EC2::VPC
     Properties:
@@ -39,43 +30,30 @@ Resources:
           Value: MyTestVpc
 
   MyTestIgw:
-    Type: AWS::EC2::InternetGateway
+    Type: 'AWS::EC2::InternetGateway'
     Properties:
       Tags:
         - Key: Name
           Value: my-test-igw
 
   MyTestAttachIgw:
-    Type: AWS::EC2::VPCGatewayAttachment
+    Type: 'AWS::EC2::VPCGatewayAttachment'
     Properties:
       VpcId: !Ref MyTestVpc
       InternetGatewayId: !Ref MyTestIgw
 
-  # Subnet Resources
   MyTestVpcSubnet:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref MyTestVpc
       CidrBlock: 10.0.0.0/24
-      AvailabilityZone: !Select [0, !GetAZs ''] # Explicitly set AZ
-      MapPublicIpOnLaunch: true # Added for public subnet
+      AvailabilityZone: !Select [0, !GetAZs '']
       Tags:
         - Key: Name
           Value: my-test-vpc-public-subnet
 
-  MyTestVpcSubnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref MyTestVpc
-      CidrBlock: 10.0.1.0/24
-      AvailabilityZone: !Select [1, !GetAZs '']
-      Tags:
-        - Key: Name
-          Value: my-test-vpc-private-subnet
-
-  # Routing Resources
   MyTestPublicRouteTable:
-    Type: AWS::EC2::RouteTable
+    Type: 'AWS::EC2::RouteTable'
     Properties:
       VpcId: !Ref MyTestVpc
       Tags:
@@ -83,20 +61,19 @@ Resources:
           Value: my-test-public-route-table
 
   MyTestRouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       RouteTableId: !Ref MyTestPublicRouteTable
       SubnetId: !Ref MyTestVpcSubnet
 
   MyTestInternetRoute:
-    Type: AWS::EC2::Route
-    DependsOn: MyTestAttachIgw # Explicit dependency
+    Type: 'AWS::EC2::Route'
+    DependsOn: MyTestAttachIgw
     Properties:
       RouteTableId: !Ref MyTestPublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref MyTestIgw
 
-  # Security Groups
   MyTestVpcSg:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -116,6 +93,16 @@ Resources:
           ToPort: 3000
           CidrIp: 0.0.0.0/0
 
+  MyTestVpcSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyTestVpc
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: my-test-vpc-private-subnet
+
   RDSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -127,7 +114,6 @@ Resources:
           ToPort: 5432
           SourceSecurityGroupId: !Ref MyTestVpcSg
 
-  # Database Resources
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
@@ -141,23 +127,18 @@ Resources:
     Properties:
       DBName: !Ref DBName
       Engine: postgres
-      EngineVersion: 14.7 # Specify version for better control
-      MasterUsername: !Ref DBUsername
-      MasterUserPassword: !Ref DBPassword
+      MasterUsername: postgres
+      MasterUserPassword: postgres123
       DBInstanceClass: db.t3.micro
-      AllocatedStorage: 20
+      AllocatedStorage: '20'
       VPCSecurityGroups:
         - !Ref RDSSecurityGroup
       DBSubnetGroupName: !Ref DBSubnetGroup
       PubliclyAccessible: false
-      BackupRetentionPeriod: 7 # Added for basic backup
-      MultiAZ: false # Explicitly set for dev/test
-      DeletionProtection: false # Easier cleanup for dev/test
 
-  # EC2 Instance
   MyTestEc2Instance:
     Type: AWS::EC2::Instance
-    DependsOn: PostgresDB # Explicit dependency on DB
+    DependsOn: PostgresDB
     Properties:
       ImageId: ami-0ea3c35c5c3284d82
       KeyName: !Ref KeyName
@@ -169,36 +150,36 @@ Resources:
             - !Ref MyTestVpcSg
           SubnetId: !Ref MyTestVpcSubnet
       UserData:
-        Fn::Base64: |
+        Fn::Base64: !Sub |
           #!/bin/bash 
-              set -ex
+          set -ex
 
-              # Update and install required packages
-              apt-get update
-              apt-get install -y git nodejs npm
+          # Update and install required packages
+          apt-get update
+          apt-get install -y git nodejs npm
 
-              # Install PM2 globally
-              npm install -g pm2
+          # Install PM2 globally
+          npm install -g pm2
 
-              # Clone and setup application
-              git clone -b cloudformation https://github.com/mhenke/Demo.git
-              cd Demo
+          # Clone and setup application
+          git clone -b cloudformation https://github.com/mhenke/Demo.git
+          cd Demo
 
-              # Remove existing .env file and create new one
-              rm -f .env
-              cat << EOF > .env
-              DATABASE="postgresql"
-              DATABASE_URL="postgresql://${DBUsername}:${DBPassword}@${PostgresDB.Endpoint.Address}:5432/${DBName}?schema=public"
-              URL="http://$PUBLIC_IP:3000"
-              EOF
+          # Remove existing .env file and create new one
+          rm -f .env
+          cat << EOF > .env
+          DATABASE="postgresql"
+          DATABASE_URL="postgresql://postgres:postgres123@${PostgresDB.Endpoint.Address}:5432/${DBName}?schema=public"
+          URL="http://$PUBLIC_IP:3000"
+          EOF
 
-              # Install dependencies
-              npm install
+          # Install dependencies
+          npm install
 
-              # Setup database and start application
-              npx prisma migrate reset --force && npx prisma migrate dev --name init
-              npm run build 
-              pm2 start npm -- start
+          # Setup database and start application
+          npx prisma migrate reset --force && npx prisma migrate dev --name init
+          npm run build 
+          pm2 start npm -- start
 
 Outputs:
   WebsiteURL:
@@ -207,6 +188,3 @@ Outputs:
   DatabaseEndpoint:
     Description: Database endpoint
     Value: !GetAtt PostgresDB.Endpoint.Address
-  DatabasePort:
-    Description: Database port
-    Value: !GetAtt PostgresDB.Endpoint.Port

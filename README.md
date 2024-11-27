@@ -19,6 +19,8 @@ npm install
 ```bash
 export BUCKET_NAME="YOUR-BUCKET-NAME"
 export KEY_PAIR_NAME="YOUR_KEY_PAIR_NAME"
+export DB_USERNAME="your_db_username"
+export DB_PASSWORD="your_db_password"
 ```
 
 ## Deploy on AWS using CloudFormation
