@@ -169,53 +169,36 @@ Resources:
             - !Ref MyTestVpcSg
           SubnetId: !Ref MyTestVpcSubnet
       UserData:
-        Fn::Base64: !Sub |
+        Fn::Base64: |
           #!/bin/bash 
-          set -ex
+              set -ex
 
-          # Wait for PostgreSQL to be ready
-          apt-get update
-          apt-get install -y postgresql-client
+              # Update and install required packages
+              apt-get update
+              apt-get install -y git nodejs npm
 
-          # Function to test PostgreSQL connection
-          test_postgresql() {
-            PGPASSWORD='${DBPassword}' psql -h ${PostgresDB.Endpoint.Address} -U ${DBUsername} -d ${DBName} -c "SELECT 1" >/dev/null 2>&1
-            return $?
-          }
+              # Install PM2 globally
+              npm install -g pm2
 
-          # Wait for PostgreSQL to be ready
-          echo "Waiting for PostgreSQL to be ready..."
-          while ! test_postgresql; do
-            sleep 10
-          done
-          echo "PostgreSQL is ready!"
+              # Clone and setup application
+              git clone -b cloudformation https://github.com/mhenke/Demo.git
+              cd Demo
 
-          # Install Node.js and npm
-          curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-          apt-get install -y nodejs git
+              # Remove existing .env file and create new one
+              rm -f .env
+              cat << EOF > .env
+              DATABASE="postgresql"
+              DATABASE_URL="postgresql://${DBUsername}:${DBPassword}@${PostgresDB.Endpoint.Address}:5432/${DBName}?schema=public"
+              URL="http://$PUBLIC_IP:3000"
+              EOF
 
-          # Install PM2 globally
-          npm install -g pm2
+              # Install dependencies
+              npm install
 
-          # Clone and setup application
-          git clone -b cloudformation https://github.com/mhenke/Demo.git
-          cd Demo
-
-          # Configure environment
-          cat << EOF > .env
-          DATABASE="postgresql"
-          DATABASE_URL="postgresql://${DBUsername}:${DBPassword}@${PostgresDB.Endpoint.Address}:5432/${DBName}?schema=public"
-          URL: !Sub "http://${MyTestEc2Instance.PublicDnsName}:3000"
-          EOF
-
-          # Install dependencies and setup database
-          npm install
-
-          npx prisma migrate reset --force && npx prisma migrate dev --name init
-
-          # Build and start application
-          npm run build
-          pm2 start npm -- start
+              # Setup database and start application
+              npx prisma migrate reset --force && npx prisma migrate dev --name init
+              npm run build 
+              pm2 start npm -- start
 
 Outputs:
   WebsiteURL:
