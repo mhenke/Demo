@@ -1,16 +1,4 @@
-# Demo Project Setup
-
-## Initial Setup
-
-```bash
-git clone https://github.com/mhenke/Demo.git
-cd Demo
-npm install
-```
-
 # Demo Project for AWS CloudFormation and Node.js SDK
-
-This project demonstrates how to use AWS CloudFormation templates and the Node.js SDK for interacting with AWS services.
 
 ## Prerequisites
 
@@ -18,10 +6,21 @@ This project demonstrates how to use AWS CloudFormation templates and the Node.j
 2. AWS account with appropriate permissions
 3. EC2 key pair created in your AWS account
 
+## Initial Setup
+
+```bash
+git clone https://github.com/mhenke/Demo.git
+cd Demo
+git checkout cloudformation
+npm install
+```
+
 # Export bucket name as environment variable
 
+```bash
 export BUCKET_NAME="YOUR-BUCKET-NAME"
 export KEY_PAIR_NAME="YOUR_KEY_PAIR_NAME"
+```
 
 ## Deploy on AWS using CloudFormation
 
@@ -31,13 +30,13 @@ export KEY_PAIR_NAME="YOUR_KEY_PAIR_NAME"
 aws s3 mb s3://${BUCKET_NAME}
 ```
 
-2. Upload the template:
+1. Upload the template:
 
 ```bash
 aws s3 cp cloudformation/web-app-nextjs.yml s3://${BUCKET_NAME}/
 ```
 
-3. Create the stack:
+1. Create the stack:
 
 ```bash
 aws cloudformation create-stack \
@@ -54,13 +53,13 @@ aws cloudformation create-stack \
 watch -n 10 'aws cloudformation describe-stacks --stack-name MyStack --query "Stacks[0].StackStatus"'
 ```
 
-4. Get stack outputs:
+1. Get stack outputs:
 
 ```bash
 aws cloudformation describe-stacks --stack-name MyStack --query "Stacks[0].Outputs" > stack-outputs.json
 ```
 
-5. Access your application:
+1. Access your application:
    - The application URL will be available in stack outputs as WebsiteURL
    - Database endpoint will be available in stack outputs as DatabaseEndpoint
 
