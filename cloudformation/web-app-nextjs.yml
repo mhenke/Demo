@@ -116,13 +116,6 @@ Resources:
               # Install PM2 globally
               npm install -g pm2
 
-              # Wait for the database to be available
-              until nc -z -v -w30 ${PostgresDB.Endpoint.Address} 5432
-              do
-            echo "Waiting for database connection..."
-            sleep 5
-              done
-
               # Clone and setup application
               git clone -b cloudformation https://github.com/mhenke/Demo.git
               cd Demo

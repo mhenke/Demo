@@ -35,7 +35,7 @@ aws s3 mb s3://${BUCKET_NAME}
 aws s3 cp cloudformation/web-app-nextjs.yml s3://${BUCKET_NAME}/
 ```
 
-3. Create the stack:
+3. Create the stack (completed in about 10 minutes):
 
 ```bash
 aws cloudformation create-stack \
@@ -46,7 +46,7 @@ aws cloudformation create-stack \
   --capabilities CAPABILITY_NAMED_IAM
 ```
 
-4. Watch stack creation status:
+4. Watch stack creation status (optional):
 
 ```bash
 watch -n 10 'aws cloudformation describe-stacks --stack-name MyStack --query "Stacks[0].StackStatus"'
