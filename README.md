@@ -3,7 +3,7 @@
 ## Initial Setup
 
 ```bash
-git clone https://github.com/UNOCourseDemo/Demo.git
+git clone https://github.com/mhenke/Demo.git
 cd Demo
 npm install
 ```

@@ -109,7 +109,7 @@ Resources:
           #!/bin/bash 
           set -ex
           yum update -y && yum install git nodejs -y
-          git clone https://github.com/UNOCourseDemo/Demo.git
+          git clone https://github.com/mhenke/Demo.git
           cd Demo
           npm i
           npm i pm2 -g
