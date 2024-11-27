@@ -14,7 +14,7 @@ cd Demo
 npm install
 ```
 
-# Export bucket name as environment variable
+## Export bucket name as environment variable
 
 ```bash
 export BUCKET_NAME="YOUR-BUCKET-NAME"
