@@ -45,6 +45,8 @@ aws cloudformation create-stack \
   --template-url https://s3.amazonaws.com/$BUCKET_NAME/web-app-nextjs.yml \
   --parameters \
     ParameterKey=KeyName,ParameterValue=$KEY_PAIR_NAME \
+    ParameterKey=DBUsername,ParameterValue=$DB_USERNAME \
+    ParameterKey=DBPassword,ParameterValue=$DB_PASSWORD \
   --capabilities CAPABILITY_NAMED_IAM
 ```
 
