@@ -19,10 +19,10 @@ Parameters:
   DBUsername:
     Type: String
     Description: Database username
-    Default: your_db_username
+    Default: postgres
   DBPassword:
     Type: String
-    Description: Database password
+    Description: postgresql123
     NoEcho: true
 
 Resources:
