@@ -12,47 +12,70 @@ Parameters:
   KeyName:
     Description: Name of an existing EC2 key pair to allow SSH access to the instances
     Type: 'AWS::EC2::KeyPair::KeyName'
-  ImageId:
-    Type: 'AWS::EC2::Image::Id'
-    Default: ami-0c1d914711f05b265
+  DBPassword:
+    Type: String
+    NoEcho: true
+    Description: PostgreSQL database password
+    MinLength: 8
+  DBUsername:
+    Type: String
+    Description: PostgreSQL database username
+    Default: postgres
+  DBName:
+    Type: String
+    Description: PostgreSQL database name
+    Default: myappdb
 
-Description: >
-  Hi, this is a demo template for creating a nodejs server on a ec2
 Resources:
+  # VPC Resources - No changes needed in order
   MyTestVpc:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: 10.0.0.0/16
-      EnableDnsSupport: 'true'
-      EnableDnsHostnames: 'true'
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
       Tags:
         - Key: Name
           Value: MyTestVpc
 
   MyTestIgw:
-    Type: 'AWS::EC2::InternetGateway'
+    Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
           Value: my-test-igw
 
   MyTestAttachIgw:
-    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Type: AWS::EC2::VPCGatewayAttachment
     Properties:
       VpcId: !Ref MyTestVpc
       InternetGatewayId: !Ref MyTestIgw
 
+  # Subnet Resources
   MyTestVpcSubnet:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref MyTestVpc
       CidrBlock: 10.0.0.0/24
+      AvailabilityZone: !Select [0, !GetAZs ''] # Explicitly set AZ
+      MapPublicIpOnLaunch: true # Added for public subnet
       Tags:
         - Key: Name
           Value: my-test-vpc-public-subnet
 
+  MyTestVpcSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyTestVpc
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: my-test-vpc-private-subnet
+
+  # Routing Resources
   MyTestPublicRouteTable:
-    Type: 'AWS::EC2::RouteTable'
+    Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref MyTestVpc
       Tags:
@@ -60,21 +83,22 @@ Resources:
           Value: my-test-public-route-table
 
   MyTestRouteTableAssociation:
-    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref MyTestPublicRouteTable
       SubnetId: !Ref MyTestVpcSubnet
 
   MyTestInternetRoute:
-    Type: 'AWS::EC2::Route'
+    Type: AWS::EC2::Route
+    DependsOn: MyTestAttachIgw # Explicit dependency
     Properties:
       RouteTableId: !Ref MyTestPublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref MyTestIgw
 
+  # Security Groups
   MyTestVpcSg:
     Type: AWS::EC2::SecurityGroup
-    DependsOn: MyTestVpc
     Properties:
       GroupDescription: SG to test ping
       VpcId: !Ref MyTestVpc
@@ -92,60 +116,6 @@ Resources:
           ToPort: 3000
           CidrIp: 0.0.0.0/0
 
-  MyTestEc2Instance:
-    Type: AWS::EC2::Instance
-    Properties:
-      ImageId: ami-0ea3c35c5c3284d82 # Ubuntu AMI
-      KeyName: !Ref KeyName
-      InstanceType: !Ref InstanceType
-      NetworkInterfaces:
-        - AssociatePublicIpAddress: true
-          DeviceIndex: 0
-          GroupSet:
-            - !Ref MyTestVpcSg
-          SubnetId: !Ref MyTestVpcSubnet
-      UserData:
-        Fn::Base64: |
-          #!/bin/bash 
-              set -ex
-
-              # Update and install required packages
-              apt-get update
-              apt-get install -y git nodejs npm
-
-              # Install PM2 globally
-              npm install -g pm2
-
-              # Clone and setup application
-              git clone -b cloudformation https://github.com/mhenke/Demo.git
-              cd Demo
-
-              # Remove existing .env file and create new one
-              rm -f .env
-              cat << EOF > .env
-              DATABASE="postgresql"
-              DATABASE_URL="postgresql://${DBUsername}:${DBPassword}@${PostgresDB.Endpoint.Address}:5432/${DBName}?schema=public"
-              URL="http://$PUBLIC_IP:3000"
-              EOF
-
-              # Install dependencies
-              npm install
-
-              # Setup database and start application
-              npx prisma migrate reset --force && npx prisma migrate dev --name init
-              npm run build 
-              pm2 start npm -- start
-
-  MyTestVpcSubnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref MyTestVpc
-      CidrBlock: 10.0.1.0/24
-      AvailabilityZone: !Select [1, !GetAZs '']
-      Tags:
-        - Key: Name
-          Value: my-test-vpc-private-subnet
-
   RDSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -157,6 +127,7 @@ Resources:
           ToPort: 5432
           SourceSecurityGroupId: !Ref MyTestVpcSg
 
+  # Database Resources
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
@@ -168,26 +139,91 @@ Resources:
   PostgresDB:
     Type: AWS::RDS::DBInstance
     Properties:
-      DBName: myappdb
+      DBName: !Ref DBName
       Engine: postgres
-      MasterUsername: postgres
-      MasterUserPassword: postgres123
+      EngineVersion: 14.7 # Specify version for better control
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
       DBInstanceClass: db.t3.micro
-      AllocatedStorage: '20'
+      AllocatedStorage: 20
       VPCSecurityGroups:
         - !Ref RDSSecurityGroup
       DBSubnetGroupName: !Ref DBSubnetGroup
       PubliclyAccessible: false
+      BackupRetentionPeriod: 7 # Added for basic backup
+      MultiAZ: false # Explicitly set for dev/test
+      DeletionProtection: false # Easier cleanup for dev/test
+
+  # EC2 Instance
+  MyTestEc2Instance:
+    Type: AWS::EC2::Instance
+    DependsOn: PostgresDB # Explicit dependency on DB
+    Properties:
+      ImageId: ami-0ea3c35c5c3284d82
+      KeyName: !Ref KeyName
+      InstanceType: !Ref InstanceType
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          GroupSet:
+            - !Ref MyTestVpcSg
+          SubnetId: !Ref MyTestVpcSubnet
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash 
+          set -ex
+
+          # Wait for PostgreSQL to be ready
+          apt-get update
+          apt-get install -y postgresql-client
+
+          # Function to test PostgreSQL connection
+          test_postgresql() {
+            PGPASSWORD='${DBPassword}' psql -h ${PostgresDB.Endpoint.Address} -U ${DBUsername} -d ${DBName} -c "SELECT 1" >/dev/null 2>&1
+            return $?
+          }
+
+          # Wait for PostgreSQL to be ready
+          echo "Waiting for PostgreSQL to be ready..."
+          while ! test_postgresql; do
+            sleep 10
+          done
+          echo "PostgreSQL is ready!"
+
+          # Install Node.js and npm
+          curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+          apt-get install -y nodejs git
+
+          # Install PM2 globally
+          npm install -g pm2
+
+          # Clone and setup application
+          git clone -b cloudformation https://github.com/mhenke/Demo.git
+          cd Demo
+
+          # Configure environment
+          cat << EOF > .env
+          DATABASE="postgresql"
+          DATABASE_URL="postgresql://${DBUsername}:${DBPassword}@${PostgresDB.Endpoint.Address}:5432/${DBName}?schema=public"
+          URL="http://\$(curl -s http://169.254.169.254/latest/meta-data/public-hostname):3000"
+          EOF
+
+          # Install dependencies and setup database
+          npm install
+
+          npx prisma migrate reset --force && npx prisma migrate dev --name init
+
+          # Build and start application
+          npm run build
+          pm2 start npm -- start
 
 Outputs:
-  MyTestVpc:
-    Description: MyTestVpc
-    Value: !Ref MyTestVpc
-    Export:
-      Name: MyTestVpc-ID
   WebsiteURL:
-    Description: URL for newly created nextjs app
+    Description: URL for newly created NextJS app
     Value: !Sub http://${MyTestEc2Instance.PublicDnsName}:3000
   DatabaseEndpoint:
     Description: Database endpoint
-    Value: !Sub ${PostgresDB.Endpoint.Address}
+    Value: !GetAtt PostgresDB.Endpoint.Address
+  DatabasePort:
+    Description: Database port
+    Value: !GetAtt PostgresDB.Endpoint.Port
