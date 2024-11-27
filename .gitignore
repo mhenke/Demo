@@ -35,3 +35,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# vscode
+.vscode/
+
+# prisma
+prisma/dev.db-journal
+
+# stack outputs
+stack-outputs.json
