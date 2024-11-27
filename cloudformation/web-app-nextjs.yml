@@ -205,7 +205,7 @@ Resources:
           cat << EOF > .env
           DATABASE="postgresql"
           DATABASE_URL="postgresql://${DBUsername}:${DBPassword}@${PostgresDB.Endpoint.Address}:5432/${DBName}?schema=public"
-          URL="http://\$(curl -s http://169.254.169.254/latest/meta-data/public-hostname):3000"
+          URL: !Sub "http://${MyTestEc2Instance.PublicDnsName}:3000"
           EOF
 
           # Install dependencies and setup database
