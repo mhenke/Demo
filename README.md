@@ -17,6 +17,7 @@ npm install
 ## Export as environment variable
 
 ```bash
+export STACK_NAME="MyStack"
 export BUCKET_NAME="YOUR-BUCKET-NAME"
 export KEY_PAIR_NAME="YOUR_KEY_PAIR_NAME"
 export DB_USERNAME="YOUR_DB_USERNAME"
@@ -41,7 +42,7 @@ aws s3 cp cloudformation/web-app-nextjs.yml s3://${BUCKET_NAME}/
 
 ```bash
 aws cloudformation create-stack \
-  --stack-name MyStack \
+  --stack-name $STACK_NAME \
   --template-url https://s3.amazonaws.com/$BUCKET_NAME/web-app-nextjs.yml \
   --parameters \
     ParameterKey=KeyName,ParameterValue=$KEY_PAIR_NAME \
@@ -53,13 +54,13 @@ aws cloudformation create-stack \
 4. Watch stack creation status (optional):
 
 ```bash
-watch -n 10 'aws cloudformation describe-stacks --stack-name MyStack --query "Stacks[0].StackStatus"'
+watch -n 10 'aws cloudformation describe-stacks --stack-name $STACK_NAME --query "Stacks[0].StackStatus"'
 ```
 
 5. Get stack outputs:
 
 ```bash
-aws cloudformation describe-stacks --stack-name MyStack --query "Stacks[0].Outputs" > stack-outputs.json
+aws cloudformation describe-stacks --stack-name $STACK_NAME --query "Stacks[0].Outputs" > stack-outputs.json
 ```
 
 6. Access your application:
@@ -70,7 +71,7 @@ aws cloudformation describe-stacks --stack-name MyStack --query "Stacks[0].Outpu
 7. Delete the stack:
 
 ```bash
-aws cloudformation delete-stack --stack-name MyStack
+aws cloudformation delete-stack --stack-name $STACK_NAME
 ```
 
 ## Architecture Components
