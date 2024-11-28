@@ -49,6 +49,12 @@ export DB_USERNAME="YOUR_DB_USERNAME"
 export DB_PASSWORD="YOUR_DB_PASSWORD"
 ```
 
+## Get EC2 key pair name (optional)
+
+```bash
+aws ec2 describe-key-pairs --query 'KeyPairs[0].KeyName'
+```
+
 ## Deploy on AWS using CloudFormation
 
 1. Create an S3 bucket:
