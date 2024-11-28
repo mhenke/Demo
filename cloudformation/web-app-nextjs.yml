@@ -13,23 +13,21 @@ Parameters:
     Description: Name of an existing EC2 key pair to allow SSH access to the instances
     Type: 'AWS::EC2::KeyPair::KeyName'
   DBName:
-    Type: String
     Description: PostgreSQL database name
+    Type: String
     Default: myappdb
-  DBUsername:
-    Type: String
-    Description: Database username
-    Default: postgres
   DBPassword:
+    Description: PostgreSQL database password
     Type: String
-    Description: Database admin password
-    Default: postgresql123
-    NoEcho: true
-
+    MinLength: 8
+  DBUsername:
+    Description: PostgreSQL database username
+    Type: String
+    Default: postgres
 Resources:
   # VPC Resources
   MyTestVpc:
-    Type: AWS::EC2::VPC
+    Type: 'AWS::EC2::VPC'
     Properties:
       CidrBlock: 10.0.0.0/16
       EnableDnsSupport: true
@@ -52,12 +50,11 @@ Resources:
       InternetGatewayId: !Ref MyTestIgw
 
   MyTestVpcSubnet:
-    Type: AWS::EC2::Subnet
+    Type: 'AWS::EC2::Subnet'
     Properties:
       VpcId: !Ref MyTestVpc
       CidrBlock: 10.0.0.0/24
       AvailabilityZone: !Select [0, !GetAZs '']
-      MapPublicIpOnLaunch: true # Added for public subnet
       Tags:
         - Key: Name
           Value: my-test-vpc-public-subnet
@@ -85,7 +82,7 @@ Resources:
       GatewayId: !Ref MyTestIgw
 
   MyTestVpcSg:
-    Type: AWS::EC2::SecurityGroup
+    Type: 'AWS::EC2::SecurityGroup'
     Properties:
       GroupDescription: SG to test ping
       VpcId: !Ref MyTestVpc
@@ -104,7 +101,7 @@ Resources:
           CidrIp: 0.0.0.0/0
 
   MyTestVpcSubnet2:
-    Type: AWS::EC2::Subnet
+    Type: 'AWS::EC2::Subnet'
     Properties:
       VpcId: !Ref MyTestVpc
       CidrBlock: 10.0.1.0/24
@@ -114,7 +111,7 @@ Resources:
           Value: my-test-vpc-private-subnet
 
   RDSSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
+    Type: 'AWS::EC2::SecurityGroup'
     Properties:
       GroupDescription: Security group for RDS
       VpcId: !Ref MyTestVpc
@@ -125,7 +122,7 @@ Resources:
           SourceSecurityGroupId: !Ref MyTestVpcSg
 
   DBSubnetGroup:
-    Type: AWS::RDS::DBSubnetGroup
+    Type: 'AWS::RDS::DBSubnetGroup'
     Properties:
       DBSubnetGroupDescription: Subnet group for RDS
       SubnetIds:
@@ -133,12 +130,12 @@ Resources:
         - !Ref MyTestVpcSubnet2
 
   PostgresDB:
-    Type: AWS::RDS::DBInstance
+    Type: 'AWS::RDS::DBInstance'
     Properties:
       DBName: !Ref DBName
       Engine: postgres
-      MasterUsername: !Ref DBUsername
-      MasterUserPassword: !Ref DBPassword
+      MasterUsername: postgres
+      MasterUserPassword: postgres123
       DBInstanceClass: db.t3.micro
       AllocatedStorage: '20'
       VPCSecurityGroups:
@@ -147,7 +144,7 @@ Resources:
       PubliclyAccessible: false
 
   MyTestEc2Instance:
-    Type: AWS::EC2::Instance
+    Type: 'AWS::EC2::Instance'
     DependsOn: PostgresDB
     Properties:
       ImageId: ami-0ea3c35c5c3284d82
@@ -160,37 +157,35 @@ Resources:
             - !Ref MyTestVpcSg
           SubnetId: !Ref MyTestVpcSubnet
       UserData:
-        Fn::Base64: !Sub
-          - |
-            #!/bin/bash 
-            set -ex
+        Fn::Base64: !Sub |
+          #!/bin/bash 
+          set -ex
 
-            # Update and install required packages
-            apt-get update
-            apt-get install -y git nodejs npm
+          # Update and install required packages
+          apt-get update
+          apt-get install -y git nodejs npm
 
-            # Install PM2 globally
-            npm install -g pm2
+          # Install PM2 globally
+          npm install -g pm2
 
-            # Clone and setup application
-            git clone -b cloudformation https://github.com/mhenke/Demo.git
-            cd Demo
+          # Clone and setup application
+          git clone -b cloudformation https://github.com/mhenke/Demo.git
+          cd Demo
 
-            # Remove existing .env file and create new one
-            rm -f .env
-            cat << EOF > .env
-            DATABASE="postgresql"
-            DATABASE_URL="postgresql://${DBUsername}:${DBPassword}@${DBEndpoint}:5432/${DBName}?schema=public"
-            URL="http://$PUBLIC_IP:3000"
-            EOF
+          # Create .env file
+          cat << EOF > .env
+          DATABASE="postgresql"
+          DATABASE_URL="postgresql://postgres:postgres123@${PostgresDB.Endpoint.Address}:5432/${DBName}?schema=public"
+          URL="http://$PUBLIC_IP:3000"
+          EOF
 
-            # Install dependencies
-            npm install
+          # Install dependencies
+          npm install
 
-            npx prisma migrate reset --force && npx prisma migrate dev --name init
-            npm run build 
-            pm2 start npm -- start
-          - DBEndpoint: !GetAtt PostgresDB.Endpoint.Address
+          # Setup database and start application
+          npx prisma migrate reset --force && npx prisma migrate dev --name init
+          npm run build 
+          pm2 start npm -- start
 
 Outputs:
   WebsiteURL:

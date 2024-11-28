@@ -81,3 +81,5 @@ pids
 # Temporary files
 tmp/
 temp/
+
+load_envs.sh
