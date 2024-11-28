@@ -26,3 +26,20 @@ model Post {
   author    User    @relation(fields: [authorId], references: [id])
   authorId  Int
 }
+
+model Resident {
+  id          Int                 @id @default(autoincrement())
+  email       String              @unique
+  unitNumber  String
+  requests    MaintenanceRequest[]
+}
+
+model MaintenanceRequest {
+  id          Int       @id @default(autoincrement())
+  description String
+  status      String    @default("pending") // Simplified to enum string
+  createdAt   DateTime  @default(now())
+  resident    Resident  @relation(fields: [residentId], references: [id])
+  residentId  Int
+}
+
