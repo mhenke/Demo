@@ -82,4 +82,4 @@ pids
 tmp/
 temp/
 
-load_envs.sh
+load_env.sh
