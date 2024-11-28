@@ -11,8 +11,10 @@
 ```bash
 git clone --branch cloudformation https://github.com/mhenke/Demo.git
 cd Demo
-npm install
 ```
+
+### Deploy locally
+
 
 ## Export as environment variable
 
