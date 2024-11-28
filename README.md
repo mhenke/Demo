@@ -19,8 +19,8 @@ npm install
 ```bash
 export BUCKET_NAME="YOUR-BUCKET-NAME"
 export KEY_PAIR_NAME="YOUR_KEY_PAIR_NAME"
-export DB_USERNAME="your_db_username"
-export DB_PASSWORD="your_db_password"
+export DB_USERNAME="YOUR_DB_USERNAME"
+export DB_PASSWORD="YOUR_DB_PASSWORD"
 ```
 
 ## Deploy on AWS using CloudFormation
@@ -66,6 +66,12 @@ aws cloudformation describe-stacks --stack-name MyStack --query "Stacks[0].Outpu
 
 - The application URL will be available in stack outputs as WebsiteURL
 - Database endpoint will be available in stack outputs as DatabaseEndpoint
+
+7. Delete the stack:
+
+```bash
+aws cloudformation delete-stack --stack-name MyStack
+```
 
 ## Architecture Components
 
