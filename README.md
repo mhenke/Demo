@@ -13,8 +13,31 @@ git clone --branch cloudformation https://github.com/mhenke/Demo.git
 cd Demo
 ```
 
-### Deploy locally
+### Deploy locally (optional)
 
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+Rename [.env.example](.env.example) to .env and update the values:
+
+```bash
+cp .env.example .env
+```
+
+3. Run prisma migration using [schema.local.prisma](prisma/schema.local.prisma):
+
+```bash
+nnpx prisma migrate reset --force --schema=./prisma/schema.local.prisma && npx prisma migrate dev --name init --schema=./prisma/schema.local.prisma
+```
+
+4. Start the application:
+
+```bash
+npm run dev
+```
 
 ## Export as environment variable
 
@@ -34,7 +57,7 @@ export DB_PASSWORD="YOUR_DB_PASSWORD"
 aws s3 mb s3://${BUCKET_NAME}
 ```
 
-2. Upload the template:
+2. Upload the [web-app-nextjs.yml](cloudformation/web-app-nextjs.yml) template:
 
 ```bash
 aws s3 cp cloudformation/web-app-nextjs.yml s3://${BUCKET_NAME}/
