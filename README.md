@@ -57,7 +57,7 @@ aws ec2 describe-key-pairs --query 'KeyPairs[0].KeyName'
 
 ## Deploy on AWS using CloudFormation
 
-0. Validate the template:
+0. Validate the template (optional):
 
 ```bash
 aws cloudformation validate-template --template-body file://cloudformation/web-app-nextjs.yml
